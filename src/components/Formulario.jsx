@@ -1,5 +1,6 @@
 import React, {useState} from 'react'
 import styled from "@emotion/styled";
+import {obtenerDiferenciaYear, calcularMarca, obtenerPlan} from "../helper";
 
 const Campo = styled.div`
     display: flex;
@@ -32,21 +33,23 @@ const Boton = styled.button`
     text-transform: uppercase;
     font-weight: bold;
     border: none;
+    margin-top: 2rem;
     &:hover{
         cursor: pointer;
         background-color: #26C6DA;
         transition: 300ms ease;
-        margin-top: 2rem;
     }
 `;
 
-const Formulario = () => {
+const Formulario = ({guardarResumen, guardarCargando}) => {
 
     const [datos, guardarDatos] = useState({
         marca: "",
         year: "",
         plan: ""
     });
+
+    const [error, guardarError] = useState(false);
 
     //Extraer los valores del state
     const {marca, year, plan} = datos;
@@ -59,8 +62,68 @@ const Formulario = () => {
         });
     }
 
+    const Error = styled.div`
+        background-color: red;
+        color: white;
+        padding: 1rem;
+        width: 100%;
+        text-align: center;
+    ` ;
+
+    // Cuando el usuario presiona submit
+    const cotizarSeguro = e =>{
+        e.preventDefault();
+        if(marca.trim() === "" || year.trim() ==="" || plan.trim() === ""){
+            guardarError(true);
+            return;
+        }
+
+        guardarError(false);
+
+        //Base de 2000
+        let resultado = 2000;
+
+        // Obtener la diferencia de años 
+        const diferencia = obtenerDiferenciaYear(year);
+
+        // por cada año hay que restar el 3% del valor
+        if(diferencia > 0 ){
+            resultado -= ((diferencia * 3) * resultado) / 100;
+        }
+        //Americano %15
+        //Asiatico  %3
+        //Europeo   %30
+        resultado = calcularMarca(marca) * resultado;
+        console.log(resultado);
+
+        //Basico aumenta 90%
+        //Completo 50%
+        const incrementoPlan = obtenerPlan(plan);
+        resultado = parseFloat(incrementoPlan * resultado).toFixed(2);
+
+        guardarCargando(true);
+
+        setTimeout(() =>{
+            
+            guardarResumen({
+                cotizacion: resultado,
+                datos
+            });
+            guardarCargando(false);
+        }, 3000)
+        //Total
+    }
+
     return ( 
-        <form>
+        <form
+            onSubmit = {cotizarSeguro}
+        >
+            {error? 
+                <Error>Todos las opciones son obligatorias</Error>
+            :
+                null
+            }
+
             <Campo>
                 <Label>Marca</Label>
                 <Select
@@ -113,7 +176,7 @@ const Formulario = () => {
                 />Completo
             </Campo>
 
-            <Boton type="button">Cotizar</Boton>
+            <Boton type="submit">Cotizar</Boton>
         </form>
      );
 }
